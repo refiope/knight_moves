@@ -34,13 +34,12 @@ class Board
   end
 
   def visited? coordinate
-    return false if coordinate == nil
     return false if @board[coordinate[0]][coordinate[1]] == "-"
-    return true
+    return true if @board[coordinate[0]][coordinate[1]] == "x"
   end
 
   def mark coordinate
-    @board[coordinate[0]][coordinate[1]] == "x"
+    @board[coordinate[0]][coordinate[1]] = "x"
   end
 end
 
@@ -51,27 +50,26 @@ def knight_moves (start, finish)
   knight = MoveNode.new(start)
   board = Board.new
 
-  return knight.position if knight.position == finish
+  return "You are at the destination already" if knight.position == finish
 
   queue.push(knight)
   board.mark(start)
 
-  queue.each  do |node|
-    parent = node.parent
-
+  queue.each_with_index  do |node, index|
     node.next_positions.each do |move|
-        if move == finish
-          final_node = node
-          break
-        end
-        board.visited?(move) ? next : board.mark([move[0],move[1]])
-        new_moves = MoveNode.new(move, node)
-        queue.push(new_moves)
+      if move == finish
+        final_node = node
+        break
+      end
+      board.visited?(move) ? next : board.mark(move)
+      new_moves = MoveNode.new(move, node)
+      queue.push(new_moves)
     end
-
-    until queue[0].parent == parent
+    break if !final_node.nil?
+    until queue[0].parent != parent
       queue.shift
     end
+    index -= 1
   end
 
   steps = []
