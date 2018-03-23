@@ -1,21 +1,28 @@
-class Node
-  attr_accessor :move, :left, :right
+class MoveNode
+  attr_accessor :position, :parent, :next_positions
 
-  def initialize move
-    @move = move
-    @left = nil
-    @right = nil
+  def initialize (current_position, parent=nil)
+    @position = current_position
+    @parent = parent
+    @next_positions = add_next_moves(@position)
   end
 
-  def child
-    return [@left,@right]
+  private
+  def add_next_moves position
+    next_moves = []
+    moves = [[1,2],[-1,2],[1,-2],[-1,-2],[2,1],[-2,1],[2,-1],[-2,-1]]
+
+    moves.each do |moved|
+      added = [position[0] + moved[0], position[1] + moved[1]]
+
+      if (position[0] + moved[0]).between?(0,7) &&
+         (position[1] + moved[1]).between?(0,7) &&
+        next_moves.push(added)
+      end
+    end
+    return next_moves
   end
 
-  def not_full?
-    num = 0
-    child.each { |node| num += 1 if !node.nil? }
-    return true if num == 1 || num == 0
-  end
 end
 
 class Board
@@ -23,68 +30,58 @@ class Board
 
   def initialize
     @board = []
-    8.times { @board.push(["","","","","","","",""]) }
+    8.times { @board.push(Array.new(8,"-")) }
   end
 
-  def find (row, column)
-     return @board[row][column]
+  def visited? coordinate
+    return false if coordinate == nil
+    return false if @board[coordinate[0]][coordinate[1]] == "-"
+    return true
   end
 
-  def find_knight
-    @board.each do |row|
-      row.each do |column|
-        return [row, column] if find(row, column) == "K"
-      end
-    end
+  def mark coordinate
+    @board[coordinate[0]][coordinate[1]] == "x"
   end
-
 end
 
-class Knight
+def knight_moves (start, finish)
+  queue = []
+  final_node = nil
 
-  def initialize
-    @move_list = [[1,2],[2,1],[-1,-2],[-2,-1],[-1,2],[-2,1],[1,-2],[2,-1]]
-    @move_tree = build_move_tree
-    @mark = "K"
-  end
+  knight = MoveNode.new(start)
+  board = Board.new
 
-  def build_move_tree
-    root_move = @move_list.pop
-    move_tree = Node.new(root_move)
-    @move_list.each do |move|
-      build_move(move, move_tree)
+  return knight.position if knight.position == finish
+
+  queue.push(knight)
+  board.mark(start)
+
+  queue.each  do |node|
+    parent = node.parent
+
+    node.next_positions.each do |move|
+        if move == finish
+          final_node = node
+          break
+        end
+        board.visited?(move) ? next : board.mark([move[0],move[1]])
+        new_moves = MoveNode.new(move, node)
+        queue.push(new_moves)
     end
-    return move_tree
-  end
 
-  def build_move (move, move_tree)
-    if move_tree.left.nil?
-      move_tree.left = Node.new(move)
-    elsif move_tree.right.nil?
-      move_tree.right = Node.new(move)
-    else
-      if move_tree.left.not_full?
-        build_move(move, move_tree.left)
-      elsif move_tree.right.not_full?
-        build_move(move, move_tree.right)
-      else
-        build_move(move, move_tree.left)
-      end
+    until queue[0].parent == parent
+      queue.shift
     end
   end
 
-end
-
-class KnightMove
-  def initialize (original_pos, destination)
-    @board = Board.new
-    @move_tree = Knight.new.build_move_tree
-    @original_pos = original_pos
-    @destination = destination
+  steps = []
+  until final_node.parent == nil
+    steps.push(final_node.position)
+    final_node = final_node.parent
   end
-
-  def calculate
-
-
-  end
+  steps = steps.reverse
+  steps.unshift(start)
+  steps.push(finish)
+  steps.each { |move| puts move.inspect }
+  puts "It took #{steps.length-1} moves to reach to the destination."
 end
